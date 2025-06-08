@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>2025年春季球技大会登録用フォーム</title>
+        <meta charset="utf-8">
+        <meta property="og:title" content="2025年春季球技大会登録用フォーム">
+        <meta property="og:description" content="<?php echo $description; ?>">
+        <meta property="og:url" content="https://bem130.com/tmp/reg25sf/">
+        <meta property="og:type" content="website">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="2025年春季球技大会登録用フォーム">
+        <meta name="twitter:description" content="<?php echo $description; ?>">
+    </head>
+    <body>
+        <div class="container">
+            <h1>
+                2025年春季球技大会登録用フォーム
+            </h1>
+            <div class="info">
+                下の入力欄を埋めたら、このページの一番下に表示されているQRコード(URL)を生徒会室に持ってきてください
+            </div>
+            <div class="info">
+                提出データを変更する際は、変更の内容に関わらず、必ずQRコードを提出してください
+            </div>
+            <h2>
+                注意事項
+            </h2>
+            <div class="warn">
+                <p>
+                    チームのリーダーもメンバーの欄に入力してください
+                </p>
+            </div>
+            <h2>
+                入力欄
+            </h2>
+            <div id="class"></div>
+            <div id="input"></div>
+            <h2>
+                提出用QRコード
+            </h2>
+            <div id="qr"></div>
+        </div>
+    </body>
+</html>
+<script src="./qrcode.min.js"></script>
+<script>
+"use strict";
+// https://github.com/neknaj/cDom
+function elm(type, prop, children) {
+    var elm = document.createElement(type);
+    var propKeys = Object.keys(prop);
+    for (var _i = 0, propKeys_1 = propKeys; _i < propKeys_1.length; _i++) {
+        var key = propKeys_1[_i];
+        if (key === "data") {
+            for (var _a = 0, _b = Object.keys(prop[key]); _a < _b.length; _a++) {
+                var k = _b[_a];
+                elm.dataset[k] = prop[key][k];
+            }
+        }
+        else {
+            elm.setAttribute(key, prop[key]);
+        }
+    }
+    for (var _c = 0, children_1 = children; _c < children_1.length; _c++) {
+        var child = children_1[_c];
+        elm.appendChild(child);
+    }
+    return elm;
+}
+function textelm(text) {
+    return document.createTextNode(text);
+}
+Element.prototype.Clear = function () {
+    this.innerHTML = "";
+    return this;
+};
+Element.prototype.Add = function (child) {
+    this.appendChild(child);
+    return this;
+};
+Element.prototype.AddM = function (children) {
+    for (let child of children) {
+        this.appendChild(child);
+    }
+    return this;
+};
+Element.prototype.Proc = function (func) {
+    func(this);
+    return this;
+};
+Element.prototype.Replace = function (children) {
+    this.replaceChildren.apply(this, children);
+    return this;
+};
+Element.prototype.Listen = function (type, listener, options) {
+    this.addEventListener(type, listener, options);
+    return this;
+};
+Element.prototype.addProp = function (prop) {
+    var propKeys = Object.keys(prop);
+    for (var _i = 0, propKeys_2 = propKeys; _i < propKeys_2.length; _i++) {
+        var key = propKeys_2[_i];
+        if (key === "data") {
+            for (var _a = 0, _b = Object.keys(prop[key]); _a < _b.length; _a++) {
+                var k = _b[_a];
+                this.dataset[k] = prop[key][k];
+            }
+        }
+        else {
+            this.setAttribute(key, prop[key]);
+        }
+    }
+    return this;
+};
+Element.prototype.addClass = function (name) {
+    this.classList.add(name);
+    return this;
+};
+</script>
+<script>
+
+// 競技の情報
+const event_info = [ // [ 競技名, ID (英語名), 1チームの人数, チームの最大数 ]
+    ["男子バレー", "mens_volleyball", 9, -1],
+    ["女子バレー", "womens_volleyball", 9, -1],
+    ["混合バレー", "mixed_volleyball", 9, -1],
+    ["混合バド", "mixed_badminton", 9, -1],
+];
+
+// 競技以外
+const additional_info = [ // [ 項目名, ID (英語名), 最大人数 ]
+    ["体育委員", "sports_committee", -1],
+    ["バレー部", "volleyball_club", -1],
+    ["バド部", "badminton_club", -1],
+    ["当日来られない可能性のある人", "potential_absentee", -1],
+];
+
+// JSON形式でデータを取得
+function get_json() {
+    // クラス情報
+    const classSelects = document.querySelectorAll("#class select");
+    const classinfo = Array.from(classSelects).map(x => x.value);
+    // 競技ごと
+    const eventDivs = document.querySelectorAll("div.item.event");
+    const events = Array.from(eventDivs).map((div, idx) => {
+        const id = event_info[idx][1];
+        // 各チーム
+        const teamDivs = div.querySelectorAll('.team');
+        const teams = Array.from(teamDivs).map(teamDiv => {
+            const leader = teamDiv.querySelector('.leader').value;
+            const members = Array.from(teamDiv.querySelectorAll('.member')).map(sel => sel.value).filter(v => v !== "--");
+            return { leader, members };
+        });
+        return { id, teams };
+    });
+    // 追加項目
+    const addDivs = document.querySelectorAll("div.item.additional");
+    const additional = Array.from(addDivs).map((div, idx) => {
+        const id = additional_info[idx][1];
+        const members = Array.from(div.querySelectorAll(":scope > select")).map(sel => sel.value).filter(v => v !== "--");
+        return { id, members };
+    });
+    return {
+        classinfo,
+        events,
+        additional
+    };
+}
+
+function add_team(eventIdx) {
+    const eventDiv = document.querySelectorAll('div.item.event')[eventIdx];
+    const teamSize = event_info[eventIdx][2];
+    const teamDiv = document.createElement('div');
+    teamDiv.className = 'team';
+    // チームリーダー
+    const leaderLabel = document.createElement('label');
+    leaderLabel.textContent = 'リーダー:';
+    teamDiv.appendChild(leaderLabel);
+    const leaderSelect = form_cell();
+    leaderSelect.classList.add('leader');
+    teamDiv.appendChild(leaderSelect);
+    const memberLabel = document.createElement('label');
+    memberLabel.textContent = 'メンバー:';
+    teamDiv.appendChild(memberLabel);
+    // メンバー
+    for (let i = 0; i < teamSize; i++) {
+        const memberSelect = form_cell();
+        memberSelect.classList.add('member');
+        teamDiv.appendChild(memberSelect);
+    }
+    // チーム削除ボタン
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = 'チーム削除';
+    delBtn.className = 'del-team-btn';
+    delBtn.addEventListener('click', () => {
+        teamDiv.remove();
+        update_url();
+    });
+    teamDiv.appendChild(delBtn);
+    eventDiv.insertBefore(teamDiv, eventDiv.querySelector('.add-team-btn'));
+}
+
+function init_form() {
+    // クラス
+    document.querySelector("#class").Clear().AddM([
+        elm("div",{},[
+            elm("select",{class:"input_cell"},
+                [
+                    elm("option",{value: "--",selected:""},[textelm("-")]),
+                    ...new Array(3).fill(0).map((x,i)=>new Array(4).fill(0).map((y,j)=>elm("option",{value:`${i+1+3}${j+1}`},[textelm(`${i+1+3}${j+1}`)]))).flat()
+                ]
+            ).Listen("change",update_url),
+            elm("label",{},[textelm("HR")]),
+        ]),
+        elm("div",{},[
+            elm("label",{},[textelm("入力者:")]),
+            form_cell(),
+        ]),
+    ])
+    // 項目
+    document.querySelector("#input").Clear().AddM([
+        ...event_info.map((item, idx) => {
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'item event';
+            eventDiv.appendChild(elm('h3', {}, [textelm(item[0])]));
+            // 最初のチームを1つ追加
+            // add_teamで追加するのでここでは空
+            // チーム追加ボタン
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.textContent = 'チームを追加';
+            addBtn.className = 'add-team-btn';
+            addBtn.addEventListener('click', () => {
+                add_team(idx);
+                update_url();
+            });
+            eventDiv.appendChild(addBtn);
+            return eventDiv;
+        }),
+        ...additional_info.map(item=>
+            elm("div",{class:"item additional"},[
+                elm("h3",{},[textelm(item[0])]),
+                ...new Array(8).fill(0).map(x=>form_cell()) // 5人分(必要に応じて調整)
+            ])
+        )
+    ]);
+    // 各競技に最初のチームを1つ追加
+    // event_info.forEach((_, idx) => add_team(idx));
+}
+
+function form_cell() {
+    return elm("select",{class:"input_cell"},
+        [
+            elm("option",{value: "--",selected:""},[textelm("-")]),
+            ...new Array(35).fill(0).map((x,i)=>elm("option",{value:(i+1).toString().padStart(2,"0")},[textelm((i+1).toString().padStart(2,"0"))]))
+        ]
+    ).Listen("change",update_url)
+}
+
+function update_url() {
+    // JSONデータを生成
+    const json = get_json();
+    console.log(JSON.stringify(json, null, 2));
+    const jsonStr = JSON.stringify(json);
+    // QRコードを表示
+    const qrContainer = document.querySelector("#qr");
+    qrContainer.innerHTML = '';
+    new QRCode(qrContainer, {
+        text: jsonStr,
+        width: 512,
+        height: 512,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.L
+    });
+    // URL履歴も更新（任意）
+    window.history.pushState(
+        { additionalInformation: 'Updated state' },
+        '',
+        '?json=' + encodeURIComponent(jsonStr)
+    );
+}
+
+function get_csv() {
+    // 全てのフォーム値を取得
+    let items = document.querySelectorAll("div.item");
+    let csv_lines = [];
+    // 各競技について処理
+    items.forEach((item, index) => {
+        let title = item.querySelector("h3").textContent;
+        let values = Array.from(item.querySelectorAll(":scope > select"))
+            .map(select => {
+                // HRと出場番号を組み合わせてHRNO形式に変換
+                let hr = document.querySelector("#class select").value;
+                let num = select.value;
+                return (hr !== "--" && num !== "--") ? hr + num : "";
+            })
+            .filter(val => val !== "")  // 空の値を除外
+            .join(",");
+        // タイトルと値をCSV形式で結合
+        if (values) {
+            csv_lines.push(`${title},${values}`);
+        }
+    });
+    return csv_lines.join("\n");
+}
+
+function timestamp() {
+    let jstDate = new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" });
+    jstDate = new Date(jstDate);
+    function pad(num) {
+        return num.toString().padStart(2, '0');
+    }
+    let year = pad(jstDate.getFullYear() % 100);
+    let month = pad(jstDate.getMonth() + 1);
+    let day = pad(jstDate.getDate());
+    let hour = pad(jstDate.getHours());
+    let minute = pad(jstDate.getMinutes());
+    let seconds = pad(jstDate.getSeconds());
+    return year + month + day + hour + minute + seconds;
+}
+
+
+// Restore form values from the URL parameters
+function restore_form() {
+    // URLからjsonパラメータを取得
+    const params = new URLSearchParams(window.location.search);
+    const jsonStr = params.get("json");
+    if (!jsonStr) return;
+    let data;
+    try {
+        data = JSON.parse(jsonStr);
+    } catch {
+        return;
+    }
+    // クラス情報
+    const classSelects = document.querySelectorAll("#class select");
+    (data.classinfo||[]).forEach((v,i)=>{ if(classSelects[i]) classSelects[i].value = v; });
+    // 競技
+    const eventDivs = document.querySelectorAll("div.item.event");
+    (data.events||[]).forEach((ev,idx)=>{
+        const eventDiv = eventDivs[idx];
+        // 既存チームを全削除
+        eventDiv.querySelectorAll('.team').forEach(t=>t.remove());
+        // チームを復元
+        (ev.teams||[]).forEach(team => {
+            add_team(idx);
+            const teamDivs = eventDiv.querySelectorAll('.team');
+            const teamDiv = teamDivs[teamDivs.length-1];
+            if (teamDiv) {
+                if (teamDiv.querySelector('.leader')) teamDiv.querySelector('.leader').value = team.leader || "--";
+                const members = teamDiv.querySelectorAll('.member');
+                (team.members||[]).forEach((v,i)=>{ if(members[i]) members[i].value = v; });
+            }
+        });
+    });
+    // 追加
+    const addDivs = document.querySelectorAll("div.item.additional");
+    (data.additional||[]).forEach((ad,idx)=>{
+        const selects = addDivs[idx]?.querySelectorAll(":scope > select");
+        (ad.members||[]).forEach((v,i)=>{ if(selects[i]) selects[i].value = v; });
+    });
+    update_url();
+}
+
+
+init_form();
+restore_form();
+
+// F1キーでCSVをクリップボードにコピーするイベントリスナーを追加
+document.addEventListener('keydown', function(event) {
+    // F1キーが押されたとき (キーコード: 112)
+    if (event.keyCode === 112) {
+        // デフォルトのF1キーの動作をキャンセル
+        event.preventDefault();
+        // CSVデータを取得してクリップボードにコピー
+        const csvData = get_csv();
+        navigator.clipboard.writeText(csvData).then(() => {
+            console.log('CSVデータをクリップボードにコピーしました');
+        }).catch(err => {
+            console.error('クリップボードへのコピーに失敗しました', err);
+        });
+    }
+});
+
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap');
+
+:root {
+    font-family: "Noto Sans JP", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.info {
+    background-color: rgb(213, 236, 179);
+    width: fit-content;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: rgb(255, 251, 245);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.input_cell {
+    font-size: 150%;
+    width: 2.1em;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+label {
+    font-size: 120%;
+    margin: 0.5em;
+}
+
+#qr img {
+    width: 100%;
+}
+
+#qr img {
+    display: inline-block !important;
+    margin: 25px;
+    padding: 25px;
+    background-color: white;
+    width: calc(800px - 100px);
+    max-width: calc(100dvw - 100px);
+}
+
+.warn {
+    border: 1px solid black;
+    border-radius: 10px;
+    padding: 10px;
+    & p {
+        margin: 0;
+    }
+    & h3 {
+        margin: 0.3em;
+    }
+}
+
+label {
+    font-size: 70%;
+}
+
+</style>
