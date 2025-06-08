@@ -263,11 +263,13 @@ function update_url() {
     const json = get_json();
     console.log(JSON.stringify(json, null, 2));
     const jsonStr = JSON.stringify(json);
+    let urlbase = "https://hakubishin1101.github.io/2025summerballgames"
+    let url = urlbase + '?json=' + encodeURIComponent(jsonStr);
     // QRコードを表示
     const qrContainer = document.querySelector("#qr");
     qrContainer.innerHTML = '';
     new QRCode(qrContainer, {
-        text: jsonStr,
+        text: url,
         width: 512,
         height: 512,
         colorDark: "#000000",
