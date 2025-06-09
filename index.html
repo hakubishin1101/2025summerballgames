@@ -29,6 +29,9 @@
                 <p>
                     チームのリーダーもメンバーの欄に入力してください
                 </p>
+                <p>
+                    担任は36番, 副担任は37番を選択してください
+                </p>
             </div>
             <h2>
                 入力欄
@@ -253,7 +256,7 @@ function form_cell() {
     return elm("select",{class:"input_cell"},
         [
             elm("option",{value: "--",selected:""},[textelm("-")]),
-            ...new Array(35).fill(0).map((x,i)=>elm("option",{value:(i+1).toString().padStart(2,"0")},[textelm((i+1).toString().padStart(2,"0"))]))
+            ...new Array(40).fill(0).map((x,i)=>elm("option",{value:(i+1).toString().padStart(2,"0")},[textelm((i+1).toString().padStart(2,"0"))]))
         ]
     ).Listen("change",update_url)
 }
